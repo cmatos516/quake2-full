@@ -99,11 +99,11 @@ FindItem
 */
 gitem_t	*FindItem (char *pickup_name)
 {
-	int		i;
+
 	gitem_t	*it;
 
 	it = itemlist;
-	for (i=0 ; i<game.num_items ; i++, it++)
+	for ( it = &itemlist[1]; it->pickup_name; it++)
 	{
 		if (!it->pickup_name)
 			continue;
@@ -1485,7 +1485,7 @@ always owned, never in the world
 /* pickup */	"HyperBlaster",
 		0,
 		1,
-		"Cells",
+		"Rockets",
 		IT_WEAPON|IT_STAY_COOP,
 		WEAP_HYPERBLASTER,
 		NULL,

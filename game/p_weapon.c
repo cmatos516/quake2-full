@@ -865,12 +865,17 @@ void Weapon_Blaster (edict_t *ent)
 }
 
 
-void Weapon_HyperBlaster_Fire (edict_t *ent)
+void Weapon_HyperBlaster_Fire(edict_t* ent)
 {
-	float	rotation;
-	vec3_t	offset;
-	int		effect;
-	int		damage;
+	float       rotation;
+	vec3_t      offset;
+	int         effect;
+	int         damage;
+	int         rocket_count = 3; // Number of rockets to fire at once
+	vec3_t      start;
+	vec3_t      forward, right, up;
+	int         i;
+	float       spread = 0.1f; // Spread factor for rockets
 
 	ent->client->weapon_sound = gi.soundindex("weapons/hyprbl1a.wav");
 
@@ -880,18 +885,18 @@ void Weapon_HyperBlaster_Fire (edict_t *ent)
 	}
 	else
 	{
-		if (! ent->client->pers.inventory[ent->client->ammo_index] )
+		if (!ent->client->pers.inventory[ent->client->ammo_index])
 		{
 			if (level.time >= ent->pain_debounce_time)
 			{
 				gi.sound(ent, CHAN_VOICE, gi.soundindex("weapons/noammo.wav"), 1, ATTN_NORM, 0);
 				ent->pain_debounce_time = level.time + 1;
 			}
-			NoAmmoWeaponChange (ent);
+			NoAmmoWeaponChange(ent);
 		}
 		else
 		{
-			rotation = (ent->client->ps.gunframe - 5) * 2*M_PI/6;
+			rotation = (ent->client->ps.gunframe - 5) * 2 * M_PI / 6;
 			offset[0] = -4 * sin(rotation);
 			offset[1] = 0;
 			offset[2] = 4 * cos(rotation);
@@ -900,13 +905,34 @@ void Weapon_HyperBlaster_Fire (edict_t *ent)
 				effect = EF_HYPERBLASTER;
 			else
 				effect = 0;
+
 			if (deathmatch->value)
 				damage = 15;
 			else
 				damage = 20;
-			Blaster_Fire (ent, offset, damage, true, effect);
-			if (! ( (int)dmflags->value & DF_INFINITE_AMMO ) )
-				ent->client->pers.inventory[ent->client->ammo_index]--;
+
+			AngleVectors(ent->client->v_angle, forward, right, up);
+
+			for (i = 0; i < rocket_count; i++)
+			{
+				VectorSet(offset, 0, 8 * i - (rocket_count - 1) * 4, ent->viewheight - 8);
+				P_ProjectSource(ent->client, ent->s.origin, offset, forward, right, start);
+
+				// Create the rocket entity
+				fire_rocket(ent, start, forward, damage, 650, 150, damage);
+
+				// Apply spread to the next rocket
+				vec3_t spread_vec = { (random() - 0.5f) * spread, (random() - 0.5f) * spread, 0 };
+				VectorAdd(forward, spread_vec, forward);
+				VectorNormalize(forward);
+
+				// Play the rocket firing sound
+				gi.sound(ent, CHAN_WEAPON, gi.soundindex("weapons/rocklf1a.wav"), 1, ATTN_NORM, 0);
+			}
+
+			// Comment out ammo deduction for infinite ammo
+			// if (!((int)dmflags->value & DF_INFINITE_AMMO))
+			//     ent->client->pers.inventory[ent->client->ammo_index] -= rocket_count;
 
 			ent->client->anim_priority = ANIM_ATTACK;
 			if (ent->client->ps.pmove.pm_flags & PMF_DUCKED)
@@ -931,8 +957,8 @@ void Weapon_HyperBlaster_Fire (edict_t *ent)
 		gi.sound(ent, CHAN_AUTO, gi.soundindex("weapons/hyprbd1a.wav"), 1, ATTN_NORM, 0);
 		ent->client->weapon_sound = 0;
 	}
-
 }
+
 
 void Weapon_HyperBlaster (edict_t *ent)
 {
